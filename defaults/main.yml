@@ -1,0 +1,16 @@
+---
+# can be minecraft, paper, fabric or spigot
+# minecraft_server: minecraft
+# minecraft_user: minecraft
+# minecraft_group: minecraft
+# minecraft_home: /srv/{{ minecraft_user }}
+minecraft_max_memory: 5120M
+minecraft_initial_memory: 2048M
+# minecraft_service_name: "{{ minecraft_server }}"
+# minecraft_console_fifo: /run/{{ minecraft_service_name }}/console
+# minecraft_console_fifo_mode: '0666'
+# minecraft_jar: fabric-server-launch.jar
+# minecraft_jar: paper-1.16.5-445.jar
+# minecraft_jar: spigot-1.16.5.jar
+# minecraft_jar: minecraft_server.jar
+...

@@ -1,0 +1,196 @@
+---
+- name: install dependencies
+  apt:
+    name:
+      - default-jdk
+      - unzip
+    state: present
+
+- name: create Minecraft group
+  group:
+    state: present
+    name: "{{ item.group }}"
+    system: yes
+  with_items: "{{ minecraft }}"
+
+- name: create Minecraft user
+  user:
+    state: present
+    name: "{{ item.user }}"
+    group: "{{ item.group }}"
+    home: "{{ item.home }}"
+    shell: /bin/bash
+  with_items: "{{ minecraft }}"
+
+- name: install systemd socket unit
+  template:
+    src: "minecraft.socket.j2"
+    dest: "/etc/systemd/system/{{ item.server }}.socket"
+    owner: root
+    group: root
+    mode: '0644'
+  with_items: "{{ minecraft }}"
+  notify:
+    - restart Minecraft
+  register: systemd_service_config
+
+- name: install systemd service unit
+  template:
+    src: "minecraft.service.j2"
+    dest: "/etc/systemd/system/{{ item.server }}.service"
+    owner: root
+    group: root
+    mode: '0644'
+  with_items: "{{ minecraft }}"
+  notify:
+    - restart Minecraft
+  register: systemd_service_config
+
+- name: reload systemd
+  command: systemctl daemon-reload
+  when: systemd_service_config.changed
+
+- name: configure console directory
+  template:
+    src: tmpfiles.d/minecraft.conf.j2
+    dest: "/etc/tmpfiles.d/{{ item.server }}.conf"
+    owner: root
+    group: root
+    mode: '0644'
+  with_items: "{{ minecraft }}"
+
+- name: create console directory
+  command: systemd-tmpfiles --create /etc/tmpfiles.d/{{ item.server }}.conf
+  args:
+    creates: /etc/tmpfiles.d/{{ item.server }}.conf
+  with_items: "{{ minecraft }}"
+
+- name: download Vanilla Minecraft server
+  get_url:
+    url: "https://launcher.mojang.com/v1/objects/1b557e7b033b583cd9f66746b7a9ab1ec1673ced/server.jar"
+    dest: "{{ item.home }}/{{ item.jar }}"
+    owner: "{{ item.user }}"
+    group: "{{ item.group }}"
+    mode: '0644'
+  when: item.server == 'minecraft'
+  with_items: "{{ minecraft }}"
+
+- name: download Paper server
+  get_url:
+    url: "https://papermc.io/api/v2/projects/paper/versions/1.16.5/builds/445/downloads/paper-1.16.5-445.jar"
+    dest: "{{ item.home }}/{{ item.jar }}"
+    owner: "{{ item.user }}"
+    group: "{{ item.group }}"
+    mode: '0644'
+  when: item.server == 'paper'
+  with_items: "{{ minecraft }}"
+
+# Generic Fabric
+
+- name: download Fabric server
+  get_url:
+    url: "https://maven.fabricmc.net/net/fabricmc/fabric-installer/0.6.1.51/fabric-installer-0.6.1.51.jar"
+    dest: "{{ item.home }}/fabric-installer-0.6.1.51.jar"
+    owner: "{{ item.user }}"
+    group: "{{ item.group }}"
+    mode: '0755'
+  when: item.server == 'fabric'
+  with_items: "{{ minecraft }}"
+
+- name: run fabric installer
+  command: java -jar fabric-installer-0.6.1.51.jar server -downloadMinecraft
+  args:
+    creates: server.jar
+    chdir: "{{ item.home }}"
+  become: true
+  become_user: "{{ item.user }}"
+  become_method: su
+  when: item.server == 'fabric'
+  with_items: "{{ minecraft }}"
+
+- name: install fabric API
+  copy:
+    src: fabric-api-0.30.0+1.16.jar
+    dest: "{{ item.home }}/mods/fabric-api-0.30.0+1.16.jar"
+    mode: '0644'
+    owner: "{{ item.user }}"
+    group: "{{ item.group }}"
+  when: item.server == 'fabric'
+  with_items: "{{ minecraft }}"
+
+# AoF3
+
+- name: download aof3 server
+  get_url:
+    url: "https://github.com/Yoosk/ServerStarter/releases/download/v2.0.1/serverstarter-2.0.1.jar"
+    dest: "{{ item.home }}/serverstarter-2.0.1.jar"
+    owner: "{{ item.user }}"
+    group: "{{ item.group }}"
+    mode: '0644'
+  when: item.server == 'aof3'
+  with_items: "{{ minecraft }}"
+
+- name: install aof3 config
+  copy:
+    src: server-setup-config.yaml
+    dest: "{{ item.home }}/server-setup-config.yaml"
+    owner: "{{ item.user }}"
+    group: "{{ item.group }}"
+    mode: '0644'
+  when: item.server == 'aof3'
+  with_items: "{{ minecraft }}"
+
+- name: ensure aof3 mods directory exists
+  file:
+    path: "{{ item.home }}/mods"
+    state: directory
+    owner: "{{ item.user }}"
+    group: "{{ item.group }}"
+  when: item.server == 'aof3'
+  with_items: "{{ minecraft }}"
+
+# Valhelsia
+
+- name: download Valhelsia server
+  unarchive:
+    src: "https://media.forgecdn.net/files/3216/147/Valhelsia_3-3.1.9-SERVER.zip"
+    remote_src: yes
+    dest: "{{ item.home }}"
+    owner: "{{ item.user }}"
+    group: "{{ item.group }}"
+  when: item.server == 'valhelsia'
+  with_items: "{{ minecraft }}"
+
+- name: run forge installer
+  command: "java -jar forge-1.16.5-36.0.35-installer.jar --installServer"
+  args:
+    creates: "{{ item.jar }}"
+    chdir: "{{ item.home }}"
+  become: true
+  become_user: "{{ item.user }}"
+  become_method: su
+  when: item.server == 'valhelsia'
+  with_items: "{{ minecraft }}"
+
+# Generic
+
+- name: agree to EULA
+  copy:
+    src: eula.txt
+    dest: "{{ item.home }}/eula.txt"
+    mode: '0644'
+    owner: "{{ item.user }}"
+    group: "{{ item.group }}"
+  with_items: "{{ minecraft }}"
+
+- name: deploy server.properties
+  template:
+    src: server.properties.j2
+    dest: "{{ item.home }}/server.properties"
+    mode: '0644'
+    owner: "{{ item.user }}"
+    group: "{{ item.group }}"
+  with_items: "{{ minecraft }}"
+  notify:
+    - enable socket
+    - enable service

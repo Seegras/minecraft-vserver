@@ -1,0 +1,11 @@
+[Unit]
+Description={{ item.server | title }} Server Console
+
+[Socket]
+ListenFIFO=/run/{{ item.server }}/console
+SocketUser={{ item.user }}
+SocketGroup={{ item.group }}
+SocketMode=0666
+
+[Install]
+WantedBy=sockets.target

@@ -1,0 +1,36 @@
+---
+
+- hosts: localhost
+  strategy: mitogen_linear
+  vars:
+    hostname: local
+    domainname: discordia.ch
+    minecraft:
+      - server: aof3
+        home: "/srv/aof3"
+        user: aof3
+        group: aof3
+        motd: "All of Fabric 3"
+        world: "world"
+        jar: serverstarter-2.0.1.jar
+        javaparams: ""
+        port: 25565
+      - server: valhelsia
+        home: "/srv/valhelsia"
+        user: valhelsia
+        group: valhelsia
+        motd: "Valhelsia 3.1.9"
+        world: "valhelsia"
+        jar: forge-1.16.5-36.0.35.jar
+        javaparams: "-XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:MaxGCPauseMillis=100 -XX:+DisableExplicitGC -XX:TargetSurvivorRatio=90 -XX:G1NewSizePercent=50 -XX:G1MaxNewSizePercent=80 -XX:G1MixedGCLiveThresholdPercent=50 -XX:+AlwaysPreTouch"
+        port: 25566
+      - server: paper
+        home: "/srv/paper"
+        user: paper
+        group: paper
+        motd: "Minecraft Paper"
+        world: "paper"
+        javaparams: jdk-11.0.9/bin/java -Xms21G -Xmx21G -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+UnlockExperimentalVMOptions -XX:+DisableExplicitGC -XX:+AlwaysPreTouch -XX:G1NewSizePercent=40 -XX:G1MaxNewSizePercent=50 -XX:G1HeapRegionSize=16M -XX:G1ReservePercent=15 -XX:G1HeapWastePercent=5 -XX:G1MixedGCCountTarget=4 -XX:InitiatingHeapOccupancyPercent=20 -XX:G1MixedGCLiveThresholdPercent=90 -XX:G1RSetUpdatingPauseTimePercent=5 -XX:SurvivorRatio=32 -XX:+PerfDisableSharedMem -XX:MaxTenuringThreshold=1 -Dusing.aikars.flags=https://mcflags.emc.gs -Daikars.new.flags=true -jar paper-1.16.5-576.jar nogui
+  roles:
+  - minecraft-vserver
+
